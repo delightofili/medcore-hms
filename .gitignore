@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Operating system and editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Test and tooling output
+playwright-report/
+test-results/
+.nyc_output/
+
+# Local certificates and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Temporary files
+tmp/
+temp/
