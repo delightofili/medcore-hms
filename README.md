@@ -70,7 +70,7 @@ pnpm infra:status
 Check the database:
 
 ```powershell
-docker compose exec postgres pg_isready -U medcore -d medcore_hms
+docker compose exec postgres sh -lc 'PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT 1"'
 ```
 
 Check Redis:
@@ -78,6 +78,15 @@ Check Redis:
 ```powershell
 docker compose exec redis sh -lc 'redis-cli -a "$REDIS_PASSWORD" ping'
 ```
+
+Create the initial database migration and open Prisma Studio:
+
+```powershell
+pnpm exec prisma migrate dev --schema apps/api/prisma/schema.prisma --name init
+pnpm exec prisma studio --schema apps/api/prisma/schema.prisma
+```
+
+Run these Prisma commands from the repository root so Prisma loads the root `.env`.
 
 ## Environment configuration
 

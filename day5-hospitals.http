@@ -1,0 +1,22 @@
+@baseUrl = http://127.0.0.1:3001/api
+@adminEmail = replace-with-super-admin-email
+@adminPassword = replace-with-super-admin-password
+
+### Sign in as a super admin
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "delightofili0@gmail.com",
+  "password": "delightsomme"
+}
+
+### Create a hospital
+POST {{baseUrl}}/hospitals
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "MedCore General Hospital"
+}

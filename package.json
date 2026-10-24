@@ -12,5 +12,8 @@
     "infra:down": "docker compose down",
     "infra:status": "docker compose ps",
     "infra:logs": "docker compose logs --tail=100 postgres redis"
+  },
+  "devDependencies": {
+    "prisma": "6"
   }
 }
