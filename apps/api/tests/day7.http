@@ -1,0 +1,47 @@
+@baseUrl = http://localhost:3001/api
+
+### 1. Register the initial account
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Chukwunonso",
+  "lastName": "Ofili",
+  "email": "superadmin@medcore.test",
+  "password": "MedCoreDev2026!"
+}
+
+### 2. LOGIN AS SUPER ADMIN
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "superadmin@medcore.test",
+  "password": "MedCoreDev2026!"
+}
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMjRjNmZjZS0zZTkyLTRlOGEtYTdjNi1hZjBhM2EzMjBlMjMiLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJob3NwaXRhbElkIjpudWxsLCJpYXQiOjE3OTM0NzU0MjUsImV4cCI6MTc5MzQ3NjMyNX0.ylUiyDN9LGuagheoubnLbbsAIwX7XBFriHEKiCkzK6k
+
+### 3. VERIFY AUTHENTICATION
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### Login as Super Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "superadmin@medcore.test",
+  "password": "MedCoreDev2026!"
+}
+
+
+### Create hospital
+POST {{baseUrl}}/hospitals
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMjRjNmZjZS0zZTkyLTRlOGEtYTdjNi1hZjBhM2EzMjBlMjMiLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJob3NwaXRhbElkIjpudWxsLCJpYXQiOjE3OTM0ODQzMTIsImV4cCI6MTc5MzQ4NTIxMn0.3JtwfqDJOHVbG3JpmQ7hHV3x4iXrYRczWVK3GXj9BqM
+Content-Type: application/json
+
+{
+  "name": "MedCore General Hospital",
+  "registrationNumber": "MCGH-2026-001"
+}
