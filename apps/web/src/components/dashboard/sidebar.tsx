@@ -2,98 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Activity,
-  CalendarDays,
-  ClipboardList,
-  CreditCard,
-  FlaskConical,
-  LayoutDashboard,
-  Pill,
-  Settings,
-  Users,
-} from "lucide-react";
+import { Activity } from "lucide-react";
 
 import { useAuth } from "@/providers/auth-provider";
-import type { UserRole } from "@/types/auth";
-
-type NavigationItem = {
-  label: string;
-  href: string;
-  icon: typeof LayoutDashboard;
-  roles: UserRole[];
-};
-
-const allRoles: UserRole[] = [
-  "SUPER_ADMIN",
-  "HOSPITAL_ADMIN",
-  "DOCTOR",
-  "NURSE",
-  "RECEPTIONIST",
-  "LAB_TECHNICIAN",
-  "PHARMACIST",
-  "ACCOUNTANT",
-  "PATIENT",
-];
-
-const navigation: NavigationItem[] = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    roles: allRoles,
-  },
-  {
-    label: "Patients",
-    href: "/dashboard/patients",
-    icon: Users,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST"],
-  },
-  {
-    label: "Appointments",
-    href: "/dashboard/appointments",
-    icon: CalendarDays,
-    roles: allRoles,
-  },
-  {
-    label: "Medical Records",
-    href: "/dashboard/records",
-    icon: ClipboardList,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "NURSE"],
-  },
-  {
-    label: "Laboratory",
-    href: "/dashboard/laboratory",
-    icon: FlaskConical,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "LAB_TECHNICIAN"],
-  },
-  {
-    label: "Pharmacy",
-    href: "/dashboard/pharmacy",
-    icon: Pill,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "PHARMACIST"],
-  },
-  {
-    label: "Billing",
-    href: "/dashboard/billing",
-    icon: CreditCard,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "ACCOUNTANT", "PATIENT"],
-  },
-  {
-    label: "Administration",
-    href: "/dashboard/administration",
-    icon: Settings,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN"],
-  },
-];
+import { isActive, navigationFor } from "./navigation";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-
-  const items = navigation.filter((item) =>
-    user ? item.roles.includes(user.role) : false,
-  );
+  const items = navigationFor(user?.role);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white md:flex md:flex-col">
@@ -113,9 +30,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 p-4">
         {items.map((item) => {
           const Icon = item.icon;
-          const active =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const active = isActive(pathname, item.href);
 
           return (
             <Link

@@ -6,17 +6,7 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 
 import { useAuth } from "@/providers/auth-provider";
-
-const links = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Patients", href: "/dashboard/patients" },
-  { label: "Appointments", href: "/dashboard/appointments" },
-  { label: "Medical Records", href: "/dashboard/records" },
-  { label: "Laboratory", href: "/dashboard/laboratory" },
-  { label: "Pharmacy", href: "/dashboard/pharmacy" },
-  { label: "Billing", href: "/dashboard/billing" },
-  { label: "Administration", href: "/dashboard/administration" },
-];
+import { isActive, navigationFor } from "./navigation";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -39,13 +29,13 @@ export function MobileNav() {
 
       {open && (
         <nav className="mt-3 space-y-1">
-          {links.map((link) => (
+          {navigationFor(user.role).map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
               className={`block rounded-lg px-3 py-2 text-sm ${
-                pathname === link.href
+                isActive(pathname, link.href)
                   ? "bg-red-50 text-red-700"
                   : "text-slate-600 hover:bg-slate-50"
               }`}

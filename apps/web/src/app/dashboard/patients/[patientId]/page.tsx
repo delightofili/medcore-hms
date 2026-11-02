@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Pencil, Archive } from "lucide-react";
+import { ArrowLeft, Archive, CalendarPlus, Pencil } from "lucide-react";
 
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { calculateAge, formatDate, humanize } from "@/lib/format";
@@ -102,7 +102,13 @@ export default function PatientDetailPage() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/dashboard/appointments/new?patientId=${patient.id}`}
+            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+          >
+            <CalendarPlus size={16} /> Book appointment
+          </Link>
           <Link
             href={`/dashboard/patients/${patient.id}/edit`}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"

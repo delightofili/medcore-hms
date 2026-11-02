@@ -1,0 +1,227 @@
+@baseUrl = http://localhost:3001/api
+@password = MedCoreDev2026!
+
+### 1. Receptionist login
+# @name reception
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "reception@medcore.test", "password": "{{password}}" }
+
+### 2. Doctor login
+# @name doctor
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "doctor@medcore.test", "password": "{{password}}" }
+
+### 3. Nurse login
+# @name nurse
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "nurse@medcore.test", "password": "{{password}}" }
+
+### 4. Accountant login
+# @name accountant
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "accountant@medcore.test", "password": "{{password}}" }
+
+###
+@hospitalId = {{reception.response.body.user.hospitalId}}
+@rTok = {{reception.response.body.accessToken}}
+@dTok = {{doctor.response.body.accessToken}}
+@nTok = {{nurse.response.body.accessToken}}
+@aTok = {{accountant.response.body.accessToken}}
+
+### 5. Doctors list: copy Dr Okafor's "id"
+GET {{baseUrl}}/hospitals/{{hospitalId}}/doctors
+Authorization: Bearer {{rTok}}
+
+### 6. Patients: copy one patient "id"
+GET {{baseUrl}}/hospitals/{{hospitalId}}/patients?q=Funmi
+Authorization: Bearer {{rTok}}
+
+###
+@doctorId = PASTE_DOCTOR_ID
+@patientId = PASTE_PATIENT_ID
+
+### 7. Free slots for a weekday: copy one "startsAt"
+GET {{baseUrl}}/hospitals/{{hospitalId}}/doctors/available-slots?doctorId={{doctorId}}&date=2026-11-05
+Authorization: Bearer {{rTok}}
+
+### 8. Book it
+# @name booking
+POST {{baseUrl}}/hospitals/{{hospitalId}}/appointments
+Authorization: Bearer {{rTok}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "doctorId": "{{doctorId}}",
+  "appointmentAt": "PASTE_STARTSAT",
+  "reason": "Fever and joint pain"
+}
+
+###
+@appointmentId = {{booking.response.body.id}}
+
+### 9. Doctor writes a record BEFORE starting: expect 400
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "patientId": "{{patientId}}", "appointmentId": "{{appointmentId}}" }
+
+### 10. Check in (reception)
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{rTok}}
+Content-Type: application/json
+
+{ "status": "CHECKED_IN" }
+
+### 11. Start consultation (doctor)
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "status": "IN_PROGRESS" }
+
+### 12. Impossible vitals: expect 400 (temperature 370)
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "patientId": "{{patientId}}", "appointmentId": "{{appointmentId}}", "temperatureC": 370 }
+
+### 13. Nurse tries to write a record: expect 403
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records
+Authorization: Bearer {{nTok}}
+Content-Type: application/json
+
+{ "patientId": "{{patientId}}" }
+
+### 14. Doctor writes the record (draft)
+# @name record
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "appointmentId": "{{appointmentId}}",
+  "chiefComplaint": "Fever for 3 days",
+  "symptoms": "Fever, chills, joint pain, headache",
+  "temperatureC": 38.6,
+  "bloodPressureSystolic": 118,
+  "bloodPressureDiastolic": 76,
+  "pulseBpm": 98,
+  "oxygenSaturation": 97,
+  "weightKg": 64.5
+}
+
+###
+@recordId = {{record.response.body.id}}
+
+### 15. Second record for the same appointment: expect 409
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "patientId": "{{patientId}}", "appointmentId": "{{appointmentId}}" }
+
+### 16. Sign without a diagnosis: expect 400
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records/{{recordId}}/sign
+Authorization: Bearer {{dTok}}
+
+### 17. Add diagnosis and plan
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/medical-records/{{recordId}}
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{
+  "diagnosis": "Uncomplicated malaria (RDT positive)",
+  "treatmentPlan": "Artemether/lumefantrine for 3 days, paracetamol for fever, review if no improvement in 72 hours"
+}
+
+### 18. Prescribe
+# @name rx
+POST {{baseUrl}}/hospitals/{{hospitalId}}/prescriptions
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{
+  "medicalRecordId": "{{recordId}}",
+  "instructions": "Complete the full course even if you feel better",
+  "items": [
+    {
+      "medicineName": "Artemether/Lumefantrine 20/120mg",
+      "form": "TABLET",
+      "dosage": "4 tablets",
+      "frequency": "Twice daily",
+      "duration": "3 days",
+      "quantity": 24,
+      "instructions": "Take with food"
+    },
+    {
+      "medicineName": "Paracetamol 500mg",
+      "form": "TABLET",
+      "dosage": "1g",
+      "frequency": "Every 8 hours as needed",
+      "duration": "3 days",
+      "quantity": 18
+    }
+  ]
+}
+
+###
+@rxId = {{rx.response.body.id}}
+
+### 19. Empty prescription: expect 400
+POST {{baseUrl}}/hospitals/{{hospitalId}}/prescriptions
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "medicalRecordId": "{{recordId}}", "items": [] }
+
+### 20. Issue the prescription
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/prescriptions/{{rxId}}/status
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "status": "ISSUED" }
+
+### 21. Doctor tries to dispense: expect 403 (pharmacy only)
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/prescriptions/{{rxId}}/status
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "status": "DISPENSED" }
+
+### 22. Sign the record
+POST {{baseUrl}}/hospitals/{{hospitalId}}/medical-records/{{recordId}}/sign
+Authorization: Bearer {{dTok}}
+
+### 23. Edit a signed record: expect 400
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/medical-records/{{recordId}}
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "diagnosis": "Changed my mind" }
+
+### 24. Nurse reads the full record (with prescriptions)
+GET {{baseUrl}}/hospitals/{{hospitalId}}/medical-records/{{recordId}}
+Authorization: Bearer {{nTok}}
+
+### 25. Accountant reads records: expect 403
+GET {{baseUrl}}/hospitals/{{hospitalId}}/medical-records?patientId={{patientId}}
+Authorization: Bearer {{aTok}}
+
+### 26. Complete the appointment
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{dTok}}
+Content-Type: application/json
+
+{ "status": "COMPLETED" }
