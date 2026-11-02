@@ -23,6 +23,14 @@ import { SlotsQueryDto } from "./dto/slots-query.dto";
 export class AvailabilityController {
   constructor(private readonly availability: AvailabilityService) {}
 
+  @Get()
+  listDoctors(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("hospitalId", ParseUUIDPipe) hospitalId: string,
+  ) {
+    return this.availability.listDoctors(user.id, hospitalId);
+  }
+
   @Post(":doctorId/availability")
   setAvailability(
     @CurrentUser() user: AuthenticatedUser,

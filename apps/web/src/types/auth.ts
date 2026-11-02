@@ -20,8 +20,14 @@ export type AuthUser = {
 
 export type LoginResponse = {
   accessToken: string;
+  refreshToken: string;
   tokenType: "Bearer";
   user: AuthUser;
+};
+
+export type RefreshResponse = {
+  accessToken: string;
+  refreshToken: string;
 };
 
 export type RegisterResponse = {

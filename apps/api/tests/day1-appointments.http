@@ -1,0 +1,116 @@
+@baseUrl = http://localhost:3001/api
+
+### 1. Login as receptionist
+# @name reception
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "reception@medcore.test", "password": "MedCoreDev2026!" }
+
+###
+@token = {{reception.response.body.accessToken}}
+@hospitalId = {{reception.response.body.user.hospitalId}}
+
+### 2. List doctors (copy one doctor "id" from here)
+GET {{baseUrl}}/hospitals/{{hospitalId}}/doctors
+Authorization: Bearer {{token}}
+
+### 3. List patients (copy one patient "id")
+GET {{baseUrl}}/hospitals/{{hospitalId}}/patients
+Authorization: Bearer {{token}}
+
+###
+@doctorId = bfa91685-207b-4166-805a-c98da83c9260
+@patientId = 5d2e48bd-a749-48c5-97cb-f866d5b21805
+@date = 2026-11-04
+
+### 4. Available slots (receptionist can now see these)
+GET {{baseUrl}}/hospitals/{{hospitalId}}/doctors/available-slots?doctorId={{doctorId}}&date={{date}}
+Authorization: Bearer {{token}}
+
+### 5. Book an appointment (paste a startsAt value from step 4)
+# @name booking
+POST {{baseUrl}}/hospitals/{{hospitalId}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "doctorId": "{{doctorId}}",
+  "appointmentAt": "2026-11-04T08:30:00.000Z",
+  "reason": "Persistent headache for three days"
+}
+
+###
+@appointmentId = {{booking.response.body.id}}
+
+### 6. Book the SAME slot again: expect 409 Conflict
+POST {{baseUrl}}/hospitals/{{hospitalId}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "doctorId": "{{doctorId}}",
+  "appointmentAt": "2026-11-04T08:30:00.000Z"
+}
+
+### 7. Book at 3:17am: expect 400 (not a slot)
+POST {{baseUrl}}/hospitals/{{hospitalId}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "doctorId": "{{doctorId}}",
+  "appointmentAt": "{{date}}T03:17:00"
+}
+
+### 8. List appointments for the day
+GET {{baseUrl}}/hospitals/{{hospitalId}}/appointments?date={{date}}
+Authorization: Bearer {{token}}
+
+### 9. Check in the patient
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "CHECKED_IN" }
+
+### 10. Receptionist tries to start the consultation: expect 403
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "IN_PROGRESS" }
+
+### 11. Login as the doctor
+# @name doctor
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "doctor@medcore.test", "password": "MedCoreDev2026!" }
+
+###
+@doctorToken = {{doctor.response.body.accessToken}}
+
+### 12. Doctor starts the consultation
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{ "status": "IN_PROGRESS" }
+
+### 13. Doctor completes it
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{ "status": "COMPLETED" }
+
+### 14. Try to cancel a completed appointment: expect 400
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/appointments/{{appointmentId}}/status
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{ "status": "CANCELLED", "cancellationReason": "Testing" }

@@ -70,28 +70,45 @@ export class StaffService {
       .update(temporarySecret)
       .digest("hex");
 
-    const user = await this.prisma.user.create({
-      data: {
-        hospitalId,
-        firstName: dto.firstName.trim(),
-        lastName: dto.lastName.trim(),
-        email,
-        phone: dto.phone?.trim(),
-        passwordHash,
-        role: dto.role,
-        status: AccountStatus.PENDING,
-      },
-      select: {
-        id: true,
-        hospitalId: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          hospitalId,
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          email,
+          phone: dto.phone?.trim(),
+          passwordHash,
+          role: dto.role,
+          status: AccountStatus.PENDING,
+        },
+        select: {
+          id: true,
+          hospitalId: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      // A doctor needs a Doctor profile before they can hold appointments.
+      if (dto.role === UserRole.DOCTOR) {
+        await tx.doctor.create({
+          data: {
+            hospitalId,
+            userId: created.id,
+            departmentId: dto.departmentId,
+            licenseNumber: dto.licenseNumber?.trim(),
+            specialization: dto.specialization?.trim(),
+          },
+        });
+      }
+
+      return created;
     });
 
     /*

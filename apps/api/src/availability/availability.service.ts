@@ -17,6 +17,14 @@ const MANAGE_SCHEDULE_ROLES = new Set<UserRole>([
   UserRole.DOCTOR,
 ]);
 
+const VIEW_SCHEDULE_ROLES = new Set<UserRole>([
+  UserRole.SUPER_ADMIN,
+  UserRole.HOSPITAL_ADMIN,
+  UserRole.DOCTOR,
+  UserRole.NURSE,
+  UserRole.RECEPTIONIST,
+]);
+
 const BOOKING_BLOCKING_STATUSES: AppointmentStatus[] = [
   AppointmentStatus.SCHEDULED,
   AppointmentStatus.CONFIRMED,
@@ -64,6 +72,62 @@ export class AvailabilityService {
     }
 
     return doctor;
+  }
+
+  private async getBookableDoctor(
+    actorId: string,
+    hospitalId: string,
+    doctorId: string,
+  ) {
+    const actor = await this.tenantAccess.requireHospitalMembership(
+      actorId,
+      hospitalId,
+    );
+
+    if (!VIEW_SCHEDULE_ROLES.has(actor.role)) {
+      throw new ForbiddenException("You cannot view doctor schedules");
+    }
+
+    const doctor = await this.prisma.doctor.findFirst({
+      where: {
+        id: doctorId,
+        hospitalId,
+        deletedAt: null,
+        user: { deletedAt: null },
+      },
+    });
+
+    if (!doctor) throw new NotFoundException("Doctor not found");
+
+    return doctor;
+  }
+
+  async listDoctors(actorId: string, hospitalId: string) {
+    const actor = await this.tenantAccess.requireHospitalMembership(
+      actorId,
+      hospitalId,
+    );
+
+    if (!VIEW_SCHEDULE_ROLES.has(actor.role)) {
+      throw new ForbiddenException("You cannot view doctors");
+    }
+
+    return this.prisma.doctor.findMany({
+      where: {
+        hospitalId,
+        deletedAt: null,
+        user: { deletedAt: null, status: "ACTIVE" },
+      },
+      select: {
+        id: true,
+        specialization: true,
+        consultationFee: true,
+        isAvailable: true,
+        user: { select: { id: true, firstName: true, lastName: true } },
+        department: { select: { id: true, name: true } },
+      },
+      orderBy: { user: { lastName: "asc" } },
+    });
   }
 
   async setWeeklyAvailability(
@@ -198,7 +262,7 @@ export class AvailabilityService {
     doctorId: string,
     dateValue: string,
   ) {
-    const doctor = await this.getDoctor(actorId, hospitalId, doctorId);
+    const doctor = await this.getBookableDoctor(actorId, hospitalId, doctorId);
 
     if (!doctor.isAvailable) {
       return { date: dateValue, doctorId, slots: [] };
@@ -232,7 +296,10 @@ export class AvailabilityService {
           doctorId: doctor.id,
           deletedAt: null,
           status: { in: BOOKING_BLOCKING_STATUSES },
-          appointmentAt: { lt: dayEnd },
+          appointmentAt: {
+            gte: new Date(dayStart.getTime() - 24 * 60 * 60_000),
+            lt: dayEnd,
+          },
         },
         select: {
           appointmentAt: true,

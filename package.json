@@ -11,7 +11,8 @@
     "infra:up": "docker compose up -d postgres redis",
     "infra:down": "docker compose down",
     "infra:status": "docker compose ps",
-    "infra:logs": "docker compose logs --tail=100 postgres redis"
+    "infra:logs": "docker compose logs --tail=100 postgres redis",
+    "db:seed": "node --env-file=.env apps/api/prisma/seed.js"
   },
   "devDependencies": {
     "prisma": "6"
