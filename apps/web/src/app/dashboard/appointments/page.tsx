@@ -28,6 +28,13 @@ const STATUS_FILTERS: Array<AppointmentStatus | ""> = [
   "NO_SHOW",
 ];
 
+const CONSULT_ROLES = ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "NURSE"];
+const CONSULT_STATUSES: AppointmentStatus[] = [
+  "CHECKED_IN",
+  "IN_PROGRESS",
+  "COMPLETED",
+];
+
 const toneClass: Record<AppointmentAction["tone"], string> = {
   primary: "bg-red-600 text-white hover:bg-red-700",
   neutral: "border border-slate-200 text-slate-700 hover:bg-slate-50",
@@ -112,6 +119,10 @@ function AppointmentsView() {
     setActionError("");
     try {
       await changeStatus(appointment, action.next);
+      // Starting a consultation takes the doctor straight to the notes.
+      if (action.next === "IN_PROGRESS") {
+        router.push(`/dashboard/appointments/${appointment.id}/consult`);
+      }
     } catch (err) {
       setActionError(
         err instanceof Error ? err.message : "Unable to update appointment",
@@ -306,6 +317,17 @@ function AppointmentsView() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-2">
+                        {CONSULT_ROLES.includes(user.role) &&
+                          CONSULT_STATUSES.includes(appointment.status) && (
+                            <Link
+                              href={`/dashboard/appointments/${appointment.id}/consult`}
+                              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                              {appointment.medicalRecord
+                                ? "View record"
+                                : "Open"}
+                            </Link>
+                          )}
                         {actions.map((action) => (
                           <button
                             key={action.next}

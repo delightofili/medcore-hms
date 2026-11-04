@@ -1,0 +1,155 @@
+@baseUrl = http://localhost:3001/api
+@password = MedCoreDev2026!
+
+### 1. Accountant login
+# @name accountant
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "accountant@medcore.test", "password": "{{password}}" }
+
+### 2. Nurse login
+# @name nurse
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "nurse@medcore.test", "password": "{{password}}" }
+
+###
+@hospitalId = {{accountant.response.body.user.hospitalId}}
+@aTok = {{accountant.response.body.accessToken}}
+@nTok = {{nurse.response.body.accessToken}}
+
+### 3. Accountant opens full patient files: expect 403
+# Patient files hold allergies and medical history, which billing staff don't need.
+GET {{baseUrl}}/hospitals/{{hospitalId}}/patients
+Authorization: Bearer {{aTok}}
+
+###
+# Paste a patient id from Day 2 (Funmi, for example)
+@patientId = PASTE_PATIENT_ID
+
+### 4. Create a draft invoice
+# @name invoice
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "items": [
+    { "description": "General consultation", "quantity": 1, "unitPrice": 15000 },
+    { "description": "Malaria RDT", "quantity": 1, "unitPrice": 2500 },
+    { "description": "Artemether/Lumefantrine 20/120mg (24 tabs)", "quantity": 1, "unitPrice": 3200.50 }
+  ],
+  "discountAmount": 700.50,
+  "dueDate": "2026-11-30",
+  "notes": "Outpatient visit"
+}
+
+###
+@invoiceId = {{invoice.response.body.id}}
+
+### 5. Discount bigger than the bill: expect 400
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patientId}}",
+  "items": [{ "description": "Consultation", "quantity": 1, "unitPrice": 1000 }],
+  "discountAmount": 5000
+}
+
+### 6. Nurse tries billing: expect 403
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices
+Authorization: Bearer {{nTok}}
+
+### 7. Pay a DRAFT invoice: expect 400 ("Issue the invoice before taking payment")
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{ "amount": 1000, "method": "CASH" }
+
+### 8. Edit the draft (fix the drug price)
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{
+  "items": [
+    { "description": "General consultation", "quantity": 1, "unitPrice": 15000 },
+    { "description": "Malaria RDT", "quantity": 1, "unitPrice": 2500 },
+    { "description": "Artemether/Lumefantrine 20/120mg (24 tabs)", "quantity": 1, "unitPrice": 3500 }
+  ],
+  "dueDate": "2026-11-30",
+  "notes": "Outpatient visit"
+}
+
+### 9. Issue it (total should be 21000.00)
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/issue
+Authorization: Bearer {{aTok}}
+
+### 10. Edit after issuing: expect 400
+PATCH {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{ "items": [{ "description": "Sneaky change", "quantity": 1, "unitPrice": 1 }] }
+
+### 11. Part payment by transfer: status becomes PARTIALLY_PAID, balance 11000.00
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{
+  "amount": 10000,
+  "method": "BANK_TRANSFER",
+  "providerReference": "TRF-20261105-001",
+  "idempotencyKey": "pay-demo-0001"
+}
+
+### 12. Same request again (double click): returns the invoice, NO second payment
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{
+  "amount": 10000,
+  "method": "BANK_TRANSFER",
+  "providerReference": "TRF-20261105-001",
+  "idempotencyKey": "pay-demo-0001"
+}
+
+### 13. Overpay: expect 400 (balance is 11000.00)
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{ "amount": 50000, "method": "CASH" }
+
+### 14. Void with a payment on it: expect 400
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/void
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{ "reason": "Testing" }
+
+### 15. Pay the rest in cash: status becomes PAID, balance 0.00
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{ "amount": 11000, "method": "CASH", "idempotencyKey": "pay-demo-0002" }
+
+### 16. Pay a PAID invoice: expect 400
+POST {{baseUrl}}/hospitals/{{hospitalId}}/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{aTok}}
+Content-Type: application/json
+
+{ "amount": 1 , "method": "CASH" }
+
+### 17. List this patient's invoices
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices?patientId={{patientId}}
+Authorization: Bearer {{aTok}}

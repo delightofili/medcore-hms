@@ -66,6 +66,7 @@ const appointmentInclude = {
     },
   },
   department: { select: { id: true, name: true } },
+  medicalRecord: { select: { id: true, status: true } },
 } satisfies Prisma.AppointmentInclude;
 
 @Injectable()

@@ -1,3 +1,5 @@
+import type { RecordStatus } from "./clinical";
+
 export type AppointmentStatus =
   | "SCHEDULED"
   | "CONFIRMED"
@@ -37,6 +39,7 @@ export type Appointment = {
     user: { firstName: string; lastName: string };
   };
   department: { id: string; name: string } | null;
+  medicalRecord: { id: string; status: RecordStatus } | null;
 };
 
 export type Doctor = {

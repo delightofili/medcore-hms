@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Archive, CalendarPlus, Pencil } from "lucide-react";
 
+import { PatientHistory } from "@/components/patients/patient-history";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { calculateAge, formatDate, humanize } from "@/lib/format";
 import { useAuth } from "@/providers/auth-provider";
@@ -167,6 +168,10 @@ export default function PatientDetailPage() {
           </p>
         </section>
       </div>
+
+      {hospitalId && (
+        <PatientHistory hospitalId={hospitalId} patientId={patient.id} />
+      )}
     </div>
   );
 }
