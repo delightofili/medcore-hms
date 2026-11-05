@@ -4,23 +4,32 @@ import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 
 import { useAuth } from "@/providers/auth-provider";
-import type { Paginated } from "@/types/common";
-import type { Patient } from "@/types/patient";
 
-type PatientPickerProps = {
-  hospitalId: string;
-  value: Patient | null;
-  onChange: (patient: Patient | null) => void;
+export type PatientOption = {
+  id: string;
+  patientNumber: string;
+  firstName: string;
+  lastName: string;
 };
 
-export function PatientPicker({
+type PatientPickerProps<T extends PatientOption> = {
+  hospitalId: string;
+  value: T | null;
+  onChange: (patient: T | null) => void;
+  /** Defaults to the full patient search. Billing passes its own identity-only search. */
+  searchPath?: (term: string) => string;
+};
+
+export function PatientPicker<T extends PatientOption>({
   hospitalId,
   value,
   onChange,
-}: PatientPickerProps) {
+  searchPath = (term) =>
+    `/hospitals/${hospitalId}/patients?limit=8&q=${encodeURIComponent(term)}`,
+}: PatientPickerProps<T>) {
   const { authRequest } = useAuth();
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<Patient[]>([]);
+  const [results, setResults] = useState<T[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -33,9 +42,7 @@ export function PatientPicker({
     let cancelled = false;
     const timer = setTimeout(() => {
       setIsSearching(true);
-      authRequest<Paginated<Patient>>(
-        `/hospitals/${hospitalId}/patients?limit=8&q=${encodeURIComponent(term)}`,
-      )
+      authRequest<{ items: T[] }>(searchPath(term))
         .then((data) => !cancelled && setResults(data.items))
         .catch(() => !cancelled && setResults([]))
         .finally(() => !cancelled && setIsSearching(false));
@@ -45,6 +52,8 @@ export function PatientPicker({
       cancelled = true;
       clearTimeout(timer);
     };
+    // searchPath is usually an inline function, so it is left out to avoid refetching every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, hospitalId, authRequest]);
 
   if (value) {

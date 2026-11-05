@@ -1,0 +1,69 @@
+@baseUrl = http://localhost:3001/api
+@password = MedCoreDev2026!
+
+### 1. Logins
+# @name reception
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "reception@medcore.test", "password": "{{password}}" }
+
+###
+# @name doctor
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "doctor@medcore.test", "password": "{{password}}" }
+
+###
+# @name accountant
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "accountant@medcore.test", "password": "{{password}}" }
+
+###
+# @name admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@medcore.test", "password": "{{password}}" }
+
+###
+@hospitalId = {{reception.response.body.user.hospitalId}}
+
+### 2. Reception dashboard: appointments, patients, billing. NO clinical or pharmacy (null)
+GET {{baseUrl}}/hospitals/{{hospitalId}}/dashboard
+Authorization: Bearer {{reception.response.body.accessToken}}
+
+### 3. Doctor dashboard: only HIS appointments and records. billing must be null
+GET {{baseUrl}}/hospitals/{{hospitalId}}/dashboard
+Authorization: Bearer {{doctor.response.body.accessToken}}
+
+### 4. Accountant dashboard: billing only. appointments, patients, clinical must be null
+GET {{baseUrl}}/hospitals/{{hospitalId}}/dashboard
+Authorization: Bearer {{accountant.response.body.accessToken}}
+
+### 5. Admin dashboard: every section filled
+GET {{baseUrl}}/hospitals/{{hospitalId}}/dashboard
+Authorization: Bearer {{admin.response.body.accessToken}}
+
+### 6. Billing patient lookup: identity fields only (no allergies, no history)
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices/patients?q=Okon
+Authorization: Bearer {{accountant.response.body.accessToken}}
+
+### 7. Lookup with 1 character returns an empty list, not the whole registry
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices/patients?q=a
+Authorization: Bearer {{accountant.response.body.accessToken}}
+
+### 8. Doctor tries the billing lookup: expect 403
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices/patients?q=Okon
+Authorization: Bearer {{doctor.response.body.accessToken}}
+
+### 9. Unpaid invoices only (ISSUED + PARTIALLY_PAID + OVERDUE)
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices?status=OPEN
+Authorization: Bearer {{accountant.response.body.accessToken}}
+
+### 10. Invalid status: expect 400
+GET {{baseUrl}}/hospitals/{{hospitalId}}/invoices?status=MAYBE
+Authorization: Bearer {{accountant.response.body.accessToken}}

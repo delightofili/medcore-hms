@@ -53,3 +53,12 @@ export function formatTime(value: string) {
     minute: "2-digit",
   });
 }
+
+// Money arrives as a string like "21000.00". Intl adds the symbol and separators: ₦21,000.00
+export function formatMoney(value: string | number, currency = "NGN") {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format(Number(value));
+}

@@ -48,6 +48,15 @@ export class BillingController {
     return this.billing.findAll(user.id, hospitalId, query);
   }
 
+  @Get("patients")
+  searchPatients(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("hospitalId", ParseUUIDPipe) hospitalId: string,
+    @Query("q") q?: string,
+  ) {
+    return this.billing.searchPatients(user.id, hospitalId, q);
+  }
+
   @Get(":invoiceId")
   findOne(
     @CurrentUser() user: AuthenticatedUser,

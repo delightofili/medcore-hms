@@ -146,6 +146,41 @@ export class BillingService {
     return invoice;
   }
 
+  /**
+   * Billing staff need to find a patient to bill, but must not see their
+   * medical file. This returns identity fields only.
+   */
+  async searchPatients(actorId: string, hospitalId: string, q?: string) {
+    await this.authorize(actorId, hospitalId);
+
+    const search = q?.trim();
+    if (!search || search.length < 2) return { items: [] };
+
+    const items = await this.prisma.patient.findMany({
+      where: {
+        hospitalId,
+        deletedAt: null,
+        OR: [
+          { patientNumber: { contains: search, mode: "insensitive" } },
+          { firstName: { contains: search, mode: "insensitive" } },
+          { lastName: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search } },
+        ],
+      },
+      select: {
+        id: true,
+        patientNumber: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      take: 8,
+    });
+
+    return { items };
+  }
+
   async create(actorId: string, hospitalId: string, dto: CreateInvoiceDto) {
     const actor = await this.authorize(actorId, hospitalId);
 

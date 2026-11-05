@@ -1,8 +1,17 @@
+/* eslint-disable */
+// MedCore HMS demo seed. Run from the repository root:
+//   node --env-file=.env apps/api/prisma/seed.js
+// Safe to run more than once: every record is upserted.
+
 const {
   PrismaClient,
   UserRole,
   AccountStatus,
   Gender,
+  AppointmentStatus,
+  InvoiceStatus,
+  PaymentMethod,
+  PaymentStatus,
 } = require("@prisma/client");
 const bcrypt = require("bcrypt");
 
@@ -53,13 +62,188 @@ async function upsertDoctor(userId, hospitalId, departmentId, profile) {
   return doctor;
 }
 
+// Today if it is a weekday, otherwise the next Monday, so seeded slots are bookable times.
+function demoDay() {
+  const day = new Date();
+  day.setHours(0, 0, 0, 0);
+  while (day.getDay() === 0 || day.getDay() === 6)
+    day.setDate(day.getDate() + 1);
+  return day;
+}
+
+function at(day, hours, minutes) {
+  const date = new Date(day);
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+async function seedDemoActivity({
+  hospital,
+  doctors,
+  patients,
+  receptionist,
+  accountant,
+}) {
+  const [chidi, funmi, ibrahim, blessing, kelechi] = patients;
+  const day = demoDay();
+
+  // A realistic morning queue. Skipped if that doctor already has something at that time.
+  const queue = [
+    [
+      doctors.okafor,
+      chidi,
+      9,
+      0,
+      AppointmentStatus.CHECKED_IN,
+      "Persistent cough for two weeks",
+    ],
+    [
+      doctors.okafor,
+      funmi,
+      9,
+      30,
+      AppointmentStatus.CONFIRMED,
+      "Follow up on blood pressure",
+    ],
+    [
+      doctors.okafor,
+      blessing,
+      10,
+      0,
+      AppointmentStatus.SCHEDULED,
+      "Joint pain",
+    ],
+    [
+      doctors.eze,
+      ibrahim,
+      9,
+      0,
+      AppointmentStatus.CHECKED_IN,
+      "Fever and vomiting",
+    ],
+    [doctors.eze, kelechi, 11, 0, AppointmentStatus.SCHEDULED, "Routine check"],
+  ];
+
+  for (const [doctor, patient, hours, minutes, status, reason] of queue) {
+    const appointmentAt = at(day, hours, minutes);
+    const taken = await prisma.appointment.findFirst({
+      where: { doctorId: doctor.id, appointmentAt, deletedAt: null },
+      select: { id: true },
+    });
+    if (taken) continue;
+
+    await prisma.appointment.create({
+      data: {
+        hospitalId: hospital.id,
+        patientId: patient.id,
+        doctorId: doctor.id,
+        departmentId: doctor.departmentId,
+        createdById: receptionist.id,
+        appointmentAt,
+        durationMinutes: 30,
+        status,
+        reason,
+        checkedInAt:
+          status === AppointmentStatus.CHECKED_IN ? new Date() : null,
+      },
+    });
+  }
+
+  // Invoices in each billing state. Keyed by invoice number, so they are created once.
+  const lastWeek = new Date(day);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  const invoices = [
+    {
+      invoiceNumber: "INV-DEMO-0001",
+      patient: chidi,
+      status: InvoiceStatus.PAID,
+      items: [
+        ["General consultation", 1, 15000],
+        ["Chest X-ray", 1, 8000],
+      ],
+      payments: [[23000, PaymentMethod.CASH]],
+    },
+    {
+      invoiceNumber: "INV-DEMO-0002",
+      patient: blessing,
+      status: InvoiceStatus.PARTIALLY_PAID,
+      items: [
+        ["General consultation", 1, 15000],
+        ["Full blood count", 1, 4500],
+      ],
+      payments: [[10000, PaymentMethod.BANK_TRANSFER]],
+    },
+    {
+      invoiceNumber: "INV-DEMO-0003",
+      patient: kelechi,
+      status: InvoiceStatus.ISSUED,
+      dueDate: lastWeek,
+      items: [["Paediatric consultation", 1, 20000]],
+      payments: [],
+    },
+  ];
+
+  for (const invoice of invoices) {
+    const exists = await prisma.invoice.findUnique({
+      where: {
+        hospitalId_invoiceNumber: {
+          hospitalId: hospital.id,
+          invoiceNumber: invoice.invoiceNumber,
+        },
+      },
+      select: { id: true },
+    });
+    if (exists) continue;
+
+    const total = invoice.items.reduce(
+      (sum, [, qty, price]) => sum + qty * price,
+      0,
+    );
+
+    await prisma.invoice.create({
+      data: {
+        hospitalId: hospital.id,
+        patientId: invoice.patient.id,
+        createdById: accountant.id,
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        subtotal: total,
+        totalAmount: total,
+        issuedAt: new Date(),
+        dueDate: invoice.dueDate ?? null,
+        items: {
+          create: invoice.items.map(([description, quantity, unitPrice]) => ({
+            description,
+            quantity,
+            unitPrice,
+            amount: quantity * unitPrice,
+          })),
+        },
+        payments: {
+          create: invoice.payments.map(([amount, method]) => ({
+            amount,
+            method,
+            currency: hospital.currency,
+            status: PaymentStatus.SUCCEEDED,
+            recordedById: accountant.id,
+            paidAt: new Date(),
+          })),
+        },
+      },
+    });
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
   const hospital = await prisma.hospital.upsert({
     where: { slug: "medcore-general-hospital" },
-    update: { isActive: true },
+    update: { isActive: true, currency: "NGN", timezone: "Africa/Lagos" },
     create: {
+      currency: "NGN",
+      timezone: "Africa/Lagos",
       name: "MedCore General Hospital",
       slug: "medcore-general-hospital",
       email: "info@medcore.test",
@@ -93,6 +277,7 @@ async function main() {
     ["reception@medcore.test", "Tobi", "Adeyemi", UserRole.RECEPTIONIST],
     ["nurse@medcore.test", "Amaka", "Obi", UserRole.NURSE],
     ["accountant@medcore.test", "Musa", "Bello", UserRole.ACCOUNTANT],
+    ["pharmacist@medcore.test", "Zainab", "Yusuf", UserRole.PHARMACIST],
   ];
 
   const users = {};
@@ -106,7 +291,7 @@ async function main() {
     });
   }
 
-  await upsertDoctor(
+  const okafor = await upsertDoctor(
     users["doctor@medcore.test"].id,
     hospital.id,
     generalMedicine.id,
@@ -118,7 +303,7 @@ async function main() {
     },
   );
 
-  await upsertDoctor(
+  const eze = await upsertDoctor(
     users["doctor2@medcore.test"].id,
     hospital.id,
     paediatrics.id,
@@ -138,12 +323,13 @@ async function main() {
     ["Kelechi", "Umeh", "2001-07-18", Gender.MALE, "O-", "08031110005"],
   ];
 
+  const demoPatients = [];
   for (const [
     index,
     [firstName, lastName, dob, gender, bloodGroup, phone],
   ] of patients.entries()) {
     const patientNumber = `MC-DEMO-${String(index + 1).padStart(4, "0")}`;
-    await prisma.patient.upsert({
+    const patient = await prisma.patient.upsert({
       where: {
         hospitalId_patientNumber: { hospitalId: hospital.id, patientNumber },
       },
@@ -161,7 +347,16 @@ async function main() {
         country: "Nigeria",
       },
     });
+    demoPatients.push(patient);
   }
+
+  await seedDemoActivity({
+    hospital,
+    doctors: { okafor, eze },
+    patients: demoPatients,
+    receptionist: users["reception@medcore.test"],
+    accountant: users["accountant@medcore.test"],
+  });
 
   console.log("Seed complete");
   console.log(`Hospital: ${hospital.name} (${hospital.id})`);

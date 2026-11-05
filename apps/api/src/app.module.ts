@@ -11,6 +11,7 @@ import { AvailabilityModule } from "./availability/availability.module";
 import { AppointmentsModule } from "./appointments/appointments.module";
 import { ClinicalModule } from "./clinical/clinical.module";
 import { BillingModule } from "./billing/billing.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { BillingModule } from "./billing/billing.module";
     AppointmentsModule,
     ClinicalModule,
     BillingModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

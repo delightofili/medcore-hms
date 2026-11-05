@@ -37,6 +37,12 @@ export type Prescription = {
     userId: string;
     user: { firstName: string; lastName: string };
   };
+  patient?: {
+    id: string;
+    patientNumber: string;
+    firstName: string;
+    lastName: string;
+  };
 };
 
 // Decimal columns (temperature, weight, height) arrive from the API as strings.

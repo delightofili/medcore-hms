@@ -237,14 +237,14 @@ Open http://localhost:3000 and sign in with one of the demo accounts below.
 All accounts use the password **`MedCoreDev2026!`** and belong to _MedCore General Hospital_.
 
 | Email                     | Role                      | Good for trying                                         |
-| ------------------------- | ------------------------- | ------------------------------------------------------- |
+| ------------------------- | ------------------------- | ------------------------------------------------------- | ------------------------- | ---------- | ---------------------------------- |
 | `reception@medcore.test`  | Receptionist              | Registering patients, booking, check in, taking payment |
 | `doctor@medcore.test`     | Doctor (General Practice) | Consultations, records, prescriptions                   |
 | `doctor2@medcore.test`    | Doctor (Paediatrics)      | A second schedule to book against                       |
 | `nurse@medcore.test`      | Nurse                     | Read-only clinical view                                 |
 | `accountant@medcore.test` | Accountant                | Billing                                                 |
 | `admin@medcore.test`      | Hospital admin            | Staff and hospital management                           |
-| `superadmin@medcore.test` | Super admin               | Platform level, not tied to one hospital                |
+| `superadmin@medcore.test` | Super admin               | Platform level, not tied to one hospital                | `pharmacist@medcore.test` | Pharmacist | Dispensing from the pharmacy queue |
 
 Both doctors work Monday to Friday, 09:00 to 17:00, in 30 minute slots.
 
@@ -383,8 +383,8 @@ Run the API and the seed first, then open a file and click **Send Request** abov
 - [x] Consultation workflow, medical records and prescriptions
 - [x] Patient clinical history
 - [x] Billing API: invoices and payments
-- [ ] Billing and pharmacy screens
-- [ ] Dashboard statistics
+- [x] Billing and pharmacy screens
+- [x] Dashboard statistics
 - [ ] Cloud deployment
 - [ ] Automated test suite
 - [ ] Laboratory module

@@ -6,6 +6,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -82,9 +83,10 @@ export class ListInvoicesDto {
   @IsUUID()
   patientId?: string;
 
+  // "OPEN" is a shortcut for every invoice that still has money to collect.
   @IsOptional()
-  @IsEnum(InvoiceStatus)
-  status?: InvoiceStatus;
+  @IsIn([...Object.values(InvoiceStatus), "OPEN"])
+  status?: InvoiceStatus | "OPEN";
 
   @IsOptional()
   @Type(() => Number)

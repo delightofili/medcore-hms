@@ -4,7 +4,6 @@ import {
   CreditCard,
   LayoutDashboard,
   Pill,
-  Settings,
   Users,
 } from "lucide-react";
 
@@ -58,19 +57,13 @@ export const navigation: NavigationItem[] = [
     label: "Pharmacy",
     href: "/dashboard/pharmacy",
     icon: Pill,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "PHARMACIST"],
+    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "NURSE", "PHARMACIST"],
   },
   {
     label: "Billing",
     href: "/dashboard/billing",
     icon: CreditCard,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "ACCOUNTANT"],
-  },
-  {
-    label: "Administration",
-    href: "/dashboard/administration",
-    icon: Settings,
-    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN"],
+    roles: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "ACCOUNTANT", "RECEPTIONIST"],
   },
 ];
 

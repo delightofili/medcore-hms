@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { PatientPicker } from "@/components/patients/patient-picker";
+import {
+  PatientPicker,
+  type PatientOption,
+} from "@/components/patients/patient-picker";
 import { EmptyState, LoadingState } from "@/components/ui/feedback";
 import { formatTime, humanize, toDateInputValue } from "@/lib/format";
 import { useAuth } from "@/providers/auth-provider";
@@ -35,7 +38,7 @@ function BookAppointmentForm() {
   const hospitalId = user?.hospitalId;
   const today = toDateInputValue();
 
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patient, setPatient] = useState<PatientOption | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [doctorId, setDoctorId] = useState("");
   const [date, setDate] = useState(() => {
