@@ -1,0 +1,35 @@
+# Smoke test for the live deployment. Replace the URL with your Render service URL.
+# The first request may take up to a minute while the free instance wakes up.
+@baseUrl = https://medcore-api.onrender.com/api
+@password = MedCoreDev2026!
+
+### 1. Liveness: the process is up
+GET {{baseUrl}}/health
+
+### 2. Readiness: database and Redis reachable, time zone should be Africa/Lagos
+GET {{baseUrl}}/health/ready
+
+### 3. Login works against the hosted database and Redis
+# @name admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@medcore.test", "password": "{{password}}" }
+
+### 4. Dashboard returns real seeded numbers in NGN
+GET {{baseUrl}}/hospitals/{{admin.response.body.user.hospitalId}}/dashboard
+Authorization: Bearer {{admin.response.body.accessToken}}
+
+### 5. Refresh token round trip (proves Redis is storing sessions)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{admin.response.body.refreshToken}}" }
+
+
+
+
+
+
+
+

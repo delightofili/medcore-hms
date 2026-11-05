@@ -262,7 +262,11 @@ async function main() {
     ),
   );
 
-  await upsertUser(passwordHash, {
+  const superAdminHash = process.env.SEED_SUPERADMIN_PASSWORD
+    ? await bcrypt.hash(process.env.SEED_SUPERADMIN_PASSWORD, 12)
+    : passwordHash;
+
+  await upsertUser(superAdminHash, {
     email: "superadmin@medcore.test",
     firstName: "Chukwunonso",
     lastName: "Ofili",

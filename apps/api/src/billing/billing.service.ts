@@ -222,7 +222,10 @@ export class BillingService {
     const where: Prisma.InvoiceWhereInput = {
       hospitalId,
       ...(query.patientId && { patientId: query.patientId }),
-      ...(query.status && { status: query.status }),
+      ...(query.status && {
+        status:
+          query.status === "OPEN" ? { in: PAYABLE_STATUSES } : query.status,
+      }),
     };
 
     const [items, total] = await this.prisma.$transaction([

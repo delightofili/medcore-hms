@@ -1,6 +1,6 @@
 import { Injectable, Logger, Module, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import Redis from "ioredis";
+import Redis, { RedisOptions } from "ioredis";
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
@@ -8,18 +8,23 @@ export class RedisService implements OnModuleDestroy {
   readonly client: Redis;
 
   constructor(config: ConfigService) {
-    const host = config.get<string>("REDIS_HOST", "127.0.0.1");
-    const port = Number(config.get<string>("REDIS_PORT", "6379"));
-    const password = config.get<string>("REDIS_PASSWORD");
-
-    this.client = new Redis({
-      host,
-      port,
-      password: password || undefined,
+    const options: RedisOptions = {
       lazyConnect: true,
       maxRetriesPerRequest: 2,
       enableReadyCheck: true,
-    });
+    };
+
+    // Hosted Redis (Render Key Value) hands you one URL. Local Docker uses host, port and password.
+    const url = config.get<string>("REDIS_URL");
+
+    this.client = url
+      ? new Redis(url, options)
+      : new Redis({
+          ...options,
+          host: config.get<string>("REDIS_HOST", "127.0.0.1"),
+          port: Number(config.get<string>("REDIS_PORT", "6379")),
+          password: config.get<string>("REDIS_PASSWORD") || undefined,
+        });
 
     this.client.on("error", (error) => {
       this.logger.error(`Redis connection error: ${error.message}`);

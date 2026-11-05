@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { FormField } from "@/components/forms/form-field";
+import { ServerWakeNotice } from "@/components/ui/server-wake-notice";
+import { DemoAccounts } from "@/components/auth/demo-accounts";
 import { useAuth } from "@/providers/auth-provider";
 
 const loginSchema = z.object({
@@ -26,6 +28,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -62,7 +65,7 @@ export default function LoginPage() {
             Sign in to access your hospital workspace.
           </p>
         </div>
-
+        <ServerWakeNotice />
         {serverError && (
           <div
             role="alert"
@@ -99,6 +102,13 @@ export default function LoginPage() {
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
+
+        <DemoAccounts
+          onPick={(email, password) => {
+            setValue("email", email, { shouldValidate: true });
+            setValue("password", password, { shouldValidate: true });
+          }}
+        />
 
         <p className="mt-6 text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}
